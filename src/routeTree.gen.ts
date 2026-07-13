@@ -24,6 +24,7 @@ import { Route as CoursesRouteImport } from './routes/courses'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LearnIdRouteImport } from './routes/learn.$id'
 import { Route as CoursesIdRouteImport } from './routes/courses.$id'
 
 const SupportRoute = SupportRouteImport.update({
@@ -101,6 +102,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LearnIdRoute = LearnIdRouteImport.update({
+  id: '/learn/$id',
+  path: '/learn/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CoursesIdRoute = CoursesIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -124,6 +130,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/support': typeof SupportRoute
   '/courses/$id': typeof CoursesIdRoute
+  '/learn/$id': typeof LearnIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -142,6 +149,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/support': typeof SupportRoute
   '/courses/$id': typeof CoursesIdRoute
+  '/learn/$id': typeof LearnIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -161,6 +169,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/support': typeof SupportRoute
   '/courses/$id': typeof CoursesIdRoute
+  '/learn/$id': typeof LearnIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -181,6 +190,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/support'
     | '/courses/$id'
+    | '/learn/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -199,6 +209,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/support'
     | '/courses/$id'
+    | '/learn/$id'
   id:
     | '__root__'
     | '/'
@@ -217,6 +228,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/support'
     | '/courses/$id'
+    | '/learn/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -235,6 +247,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   SignupRoute: typeof SignupRoute
   SupportRoute: typeof SupportRoute
+  LearnIdRoute: typeof LearnIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -344,6 +357,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/learn/$id': {
+      id: '/learn/$id'
+      path: '/learn/$id'
+      fullPath: '/learn/$id'
+      preLoaderRoute: typeof LearnIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/courses/$id': {
       id: '/courses/$id'
       path: '/$id'
@@ -381,6 +401,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   SignupRoute: SignupRoute,
   SupportRoute: SupportRoute,
+  LearnIdRoute: LearnIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
