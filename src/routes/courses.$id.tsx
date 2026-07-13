@@ -34,7 +34,8 @@ export const Route = createFileRoute("/courses/$id")({
 });
 
 function CoursePreview() {
-  const { course } = Route.useLoaderData();
+  const { id } = Route.useParams();
+  const course = getCourse(id)!;
   const state = usePortal();
   const enrolled = isEnrolled(state, course.id);
   const [modalOpen, setModalOpen] = useState(false);
