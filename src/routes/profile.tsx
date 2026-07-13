@@ -1,500 +1,191 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import {
-  User,
-  Award,
-  BookOpen,
-  Check,
-  X,
-  Sparkles,
-  Crown,
-  Download,
-  GraduationCap,
-  Clock,
-  CheckCircle2,
-} from "lucide-react";
+import { useState } from "react";
+import { User, Crown, Sparkles, Check } from "lucide-react";
 import { toast } from "sonner";
+import { usePortal, portalActions, selectStats } from "@/lib/portal-store";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/profile")({
+  head: () => ({
+    meta: [
+      { title: "Profile Settings — AKUH Learning Portal" },
+      { name: "description", content: "Manage your profile, learning summary, and account preferences." },
+    ],
+  }),
   component: ProfilePage,
 });
 
-type Course = {
-  id: string;
-  tier: "basic" | "premium";
-  title: string;
-  desc: string;
-  lessons: string[];
-};
-
-const COURSES: Course[] = [
-  {
-    id: "basic-foundations",
-    tier: "basic",
-    title: "Copilot Foundations",
-    desc: "Get started with Microsoft Copilot at AKUH.",
-    lessons: [
-      "What is Copilot?",
-      "Getting Started with the Learning Portal",
-      "Writing Effective Prompts",
-      "Understanding Access Tiers",
-      "Using the Role-Based Prompt Library",
-    ],
-  },
-  {
-    id: "basic-outlook",
-    tier: "basic",
-    title: "Copilot for Outlook (Basic)",
-    desc: "Use Copilot Chat to speed up email work.",
-    lessons: [
-      "Summarizing long threads",
-      "Drafting professional replies",
-      "Prompt patterns for inbox triage",
-    ],
-  },
-  {
-    id: "premium-word",
-    tier: "premium",
-    title: "Copilot for Word",
-    desc: "Master in-app AI drafting and editing.",
-    lessons: [
-      "Drafting from a prompt",
-      "Rewriting and tone control",
-      "Summarizing long documents",
-      "Reviewing with Copilot",
-    ],
-  },
-  {
-    id: "premium-excel",
-    tier: "premium",
-    title: "Data Analysis with Copilot in Excel",
-    desc: "Natural-language formulas and insights.",
-    lessons: [
-      "Asking Copilot about your data",
-      "Generating formulas",
-      "Charts and trends",
-      "PivotTable insights",
-    ],
-  },
-  {
-    id: "premium-agents",
-    tier: "premium",
-    title: "Building Custom AI Agents",
-    desc: "Automate multi-step workflows across Microsoft 365.",
-    lessons: [
-      "Agent basics",
-      "Designing a workflow",
-      "Testing and iterating",
-      "Deploying to your team",
-    ],
-  },
-];
-
-const STORAGE_KEY = "akuh-profile-v1";
-const PREMIUM_KEY = "akuh-premium-request-v1";
-
-type ProfileState = {
-  enrolled: Record<string, string[]>; // courseId -> completed lesson titles
-  completedAt?: Record<string, string>; // courseId -> ISO date completion
-};
-
-type PremiumRequest = {
-  status: "none" | "pending" | "approved" | "rejected";
-  requestedAt?: string;
-};
-
-function loadState(): ProfileState {
-  if (typeof window === "undefined") return { enrolled: {}, completedAt: {} };
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { enrolled: {}, completedAt: {} };
-    const p = JSON.parse(raw) as ProfileState;
-    return { enrolled: p.enrolled ?? {}, completedAt: p.completedAt ?? {} };
-  } catch {
-    return { enrolled: {}, completedAt: {} };
-  }
-}
-
-function loadPremium(): PremiumRequest {
-  if (typeof window === "undefined") return { status: "none" };
-  try {
-    const raw = window.localStorage.getItem(PREMIUM_KEY);
-    if (!raw) return { status: "none" };
-    return JSON.parse(raw) as PremiumRequest;
-  } catch {
-    return { status: "none" };
-  }
-}
-
 function ProfilePage() {
-  const [state, setState] = useState<ProfileState>({ enrolled: {}, completedAt: {} });
-  const [premium, setPremium] = useState<PremiumRequest>({ status: "none" });
-  const [hydrated, setHydrated] = useState(false);
-  const [certCourse, setCertCourse] = useState<Course | null>(null);
+  const state = usePortal();
+  const stats = selectStats(state);
+  const [form, setForm] = useState(state.profile);
+  const isPremium = state.premium.status === "approved";
+  const initials = form.name.split(" ").slice(0, 2).map((s) => s[0]).join("");
 
-  useEffect(() => {
-    setState(loadState());
-    setPremium(loadPremium());
-    setHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [state, hydrated]);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    window.localStorage.setItem(PREMIUM_KEY, JSON.stringify(premium));
-  }, [premium, hydrated]);
-
-  const enroll = (id: string) => {
-    setState((s) => ({ ...s, enrolled: { ...s.enrolled, [id]: s.enrolled[id] ?? [] } }));
-    toast.success("Enrolled in course");
-  };
-
-  const toggleLesson = (courseId: string, lesson: string) => {
-    setState((s) => {
-      const course = COURSES.find((c) => c.id === courseId);
-      const done = new Set(s.enrolled[courseId] ?? []);
-      if (done.has(lesson)) done.delete(lesson);
-      else done.add(lesson);
-      const completedAt = { ...(s.completedAt ?? {}) };
-      if (course && done.size === course.lessons.length && !completedAt[courseId]) {
-        completedAt[courseId] = new Date().toISOString();
-      }
-      if (course && done.size < course.lessons.length && completedAt[courseId]) {
-        delete completedAt[courseId];
-      }
-      return { ...s, enrolled: { ...s.enrolled, [courseId]: Array.from(done) }, completedAt };
-    });
-  };
-
-  const enrolledCourses = useMemo(
-    () => COURSES.filter((c) => c.id in state.enrolled),
-    [state]
-  );
-  const availableCourses = useMemo(
-    () => COURSES.filter((c) => !(c.id in state.enrolled)),
-    [state]
-  );
-  const completedCourses = useMemo(
-    () => enrolledCourses.filter((c) => (state.enrolled[c.id] ?? []).length === c.lessons.length),
-    [enrolledCourses, state]
-  );
-
-  const isPremium = premium.status === "approved";
-
-  const requestPremium = () => {
-    setPremium({ status: "pending", requestedAt: new Date().toISOString() });
-    toast.success("Premium access request submitted. The AI CoE team will review it shortly.");
+  const save = () => {
+    portalActions.updateProfile(form);
+    toast.success("Profile updated");
   };
 
   return (
-    <div className="max-w-[1200px] mx-auto px-6 md:px-10 py-10 space-y-10">
-      {/* Header */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-accent to-background border border-border rounded-2xl shadow-card-hover p-6 md:p-8">
-        <div className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
-        <div className="relative flex flex-col md:flex-row md:items-center gap-6">
-          <div className="h-24 w-24 rounded-2xl bg-gradient-to-br from-primary to-[oklch(0.42_0.2_270)] text-primary-foreground text-3xl font-semibold grid place-items-center shadow-lg ring-4 ring-white/40">
-            AS
-          </div>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Aisha Siddiqui</h1>
-            <p className="text-sm text-muted-foreground mt-1">aisha.s@aku.edu · Nursing Department</p>
-            <div className="mt-4 flex flex-wrap gap-2">
+    <div className="max-w-[1200px] mx-auto px-6 lg:px-10 py-12 lg:py-16">
+      <header className="mb-10">
+        <div className="text-[11px] uppercase tracking-[0.28em] text-amber-deep font-semibold">Profile</div>
+        <h1 className="mt-2 font-display text-4xl md:text-5xl leading-tight">Your details</h1>
+      </header>
+
+      <div className="grid lg:grid-cols-[340px_1fr] gap-10">
+        {/* Sticky summary */}
+        <aside className="lg:sticky lg:top-24 lg:self-start">
+          <div className="relative overflow-hidden rounded-3xl bg-plum-mesh text-white p-6">
+            <div className="mx-auto h-24 w-24 rounded-2xl bg-amber-glow text-plum-ink text-3xl font-display grid place-items-center shadow-glow-amber">
+              {initials || <User className="h-8 w-8" />}
+            </div>
+            <div className="mt-4 text-center">
+              <div className="font-display text-2xl">{form.name}</div>
+              <div className="text-sm text-white/70">{form.email}</div>
+              <div className="mt-1 text-xs text-white/50">{form.role} · {form.department}</div>
+            </div>
+            <div className="mt-5 flex flex-wrap justify-center gap-2">
               {isPremium ? (
-                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full border bg-amber-100 text-amber-800 border-amber-300">
-                  <Crown className="h-3 w-3" /> Premium Access
-                </span>
+                <Badge tone="amber"><Crown className="h-3 w-3" /> Premium</Badge>
               ) : (
-                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full border bg-primary/10 text-primary border-primary/20">
-                  <Sparkles className="h-3 w-3" /> Tier 1 Basic Access
-                </span>
+                <Badge><Sparkles className="h-3 w-3" /> Tier 1 Basic</Badge>
               )}
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full border bg-accent text-accent-foreground border-border">
-                <User className="h-3 w-3" /> Employee
-              </span>
-              {premium.status === "pending" && (
-                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full border bg-blue-50 text-blue-700 border-blue-200">
-                  <Clock className="h-3 w-3" /> Premium Requested
-                </span>
-              )}
+              <Badge><User className="h-3 w-3" /> Employee</Badge>
+            </div>
+            <div className="mt-6 pt-5 border-t border-white/10 grid grid-cols-3 text-center">
+              <MiniStat value={stats.enrolledCount} label="Enrolled" />
+              <MiniStat value={stats.inProgressCount} label="Ongoing" />
+              <MiniStat value={stats.completedCount} label="Certs" />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Stat icon={BookOpen} label="Enrolled" value={enrolledCourses.length} />
-            <Stat icon={Award} label="Certificates" value={completedCourses.length} />
-          </div>
-        </div>
-      </div>
+        </aside>
 
-      {/* Request Premium Card (only for basic users) */}
-      {!isPremium && (
-        <section className="bg-gradient-to-br from-amber-50 via-card to-card border border-amber-200/70 rounded-2xl shadow-card p-6 md:p-7 flex flex-col md:flex-row md:items-center gap-5">
-          <div className="h-12 w-12 rounded-xl bg-amber-500 text-white grid place-items-center shadow-sm shrink-0">
-            <Crown className="h-6 w-6" />
-          </div>
-          <div className="flex-1">
-            <div className="text-base font-semibold">Unlock Microsoft 365 Copilot Premium</div>
-            <p className="text-sm text-muted-foreground mt-1">
-              Get embedded AI inside Word, Excel, PowerPoint, Outlook, and Teams — plus priority access and custom agents.
-            </p>
-          </div>
-          <button
-            onClick={requestPremium}
-            disabled={premium.status === "pending"}
-            className="inline-flex items-center gap-2 h-11 px-5 rounded-md bg-amber-500 text-white text-sm font-medium hover:bg-amber-600 disabled:bg-amber-300 disabled:cursor-not-allowed transition shrink-0"
-          >
-            {premium.status === "pending" ? (
-              <><Clock className="h-4 w-4" /> Request Pending</>
-            ) : (
-              <><Crown className="h-4 w-4" /> Request Premium Access</>
-            )}
-          </button>
-        </section>
-      )}
-
-      {/* Enrolled */}
-      <section>
-        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-          <GraduationCap className="h-5 w-5 text-primary" /> My Courses
-        </h2>
-        {enrolledCourses.length === 0 ? (
-          <div className="bg-card border border-dashed border-border rounded-xl p-10 text-center text-sm text-muted-foreground">
-            You're not enrolled in any courses yet. Browse available courses below to get started.
-          </div>
-        ) : (
-          <div className="grid md:grid-cols-2 gap-5">
-            {enrolledCourses.map((c) => {
-              const done = state.enrolled[c.id] ?? [];
-              const pct = Math.round((done.length / c.lessons.length) * 100);
-              const complete = pct === 100;
-              const barColor = complete
-                ? "bg-gradient-to-r from-green-500 to-emerald-500"
-                : c.tier === "premium"
-                ? "bg-gradient-to-r from-amber-400 to-amber-600"
-                : "bg-gradient-to-r from-primary to-[oklch(0.55_0.18_260)]";
-              return (
-                <div key={c.id} className="bg-card border border-border rounded-xl shadow-card hover:shadow-card-hover transition-shadow p-6 flex flex-col">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        {c.tier === "premium" ? (
-                          <Crown className="h-4 w-4 text-amber-600 shrink-0" />
-                        ) : (
-                          <Sparkles className="h-4 w-4 text-primary shrink-0" />
-                        )}
-                        <div className="font-semibold text-[15px] truncate">{c.title}</div>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">{c.desc}</p>
-                    </div>
-                    <span className={`text-xs font-semibold tabular-nums shrink-0 ${complete ? "text-green-600" : "text-foreground"}`}>{pct}%</span>
-                  </div>
-
-                  <div className="mt-4 h-2.5 rounded-full bg-muted overflow-hidden">
-                    <div
-                      className={`h-full transition-all duration-500 ${barColor}`}
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                  <div className="mt-1.5 text-[11px] text-muted-foreground">
-                    {done.length} of {c.lessons.length} lessons complete
-                  </div>
-
-                  <ul className="mt-4 space-y-1 flex-1">
-                    {c.lessons.map((l) => {
-                      const isDone = done.includes(l);
-                      return (
-                        <li key={l}>
-                          <button
-                            onClick={() => toggleLesson(c.id, l)}
-                            className="w-full flex items-center gap-2.5 text-left text-sm py-1.5 rounded-md hover:bg-muted px-2 transition"
-                          >
-                            <span
-                              className={`h-4 w-4 rounded-full flex items-center justify-center flex-shrink-0 border transition ${
-                                isDone ? "bg-green-500 border-green-500 text-white" : "border-border"
-                              }`}
-                            >
-                              {isDone && <Check className="h-3 w-3" />}
-                            </span>
-                            <span className={isDone ? "text-muted-foreground line-through" : ""}>{l}</span>
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-
-                  {complete && (
-                    <button
-                      onClick={() => setCertCourse(c)}
-                      className="mt-5 inline-flex items-center justify-center gap-2 h-10 rounded-md bg-gradient-to-r from-green-600 to-emerald-600 text-white text-sm font-medium hover:from-green-700 hover:to-emerald-700 transition"
-                    >
-                      <Award className="h-4 w-4" /> View Certificate
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
-      {/* Certificates */}
-      <section>
-        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-          <Award className="h-5 w-5 text-primary" /> Certificates
-        </h2>
-        {completedCourses.length === 0 ? (
-          <div className="bg-card border border-dashed border-border rounded-xl p-10 text-center">
-            <Award className="h-10 w-10 mx-auto text-muted-foreground/50" />
-            <p className="mt-3 text-sm text-muted-foreground">
-              Complete a course to earn your first certificate.
-            </p>
-          </div>
-        ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {completedCourses.map((c) => {
-              const dateStr = state.completedAt?.[c.id];
-              const date = dateStr ? new Date(dateStr).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "";
-              return (
-                <div key={c.id} className="group relative overflow-hidden bg-gradient-to-br from-[oklch(0.98_0.02_150)] to-card border border-green-200/60 rounded-xl shadow-card hover:shadow-card-hover transition p-5">
-                  <div className="absolute -top-8 -right-8 h-24 w-24 rounded-full bg-green-500/10 blur-2xl" />
-                  <div className="relative">
-                    <div className="flex items-center gap-2">
-                      <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 text-white grid place-items-center shadow-sm">
-                        <Award className="h-5 w-5" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-[10px] font-semibold uppercase tracking-wide text-green-700">Certificate</div>
-                        <div className="text-sm font-semibold truncate">{c.title}</div>
-                      </div>
-                    </div>
-                    <div className="mt-4 text-xs text-muted-foreground">
-                      Completed {date || "recently"}
-                    </div>
-                    <div className="mt-4 flex gap-2">
-                      <button
-                        onClick={() => setCertCourse(c)}
-                        className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-md border border-border bg-card text-xs font-medium hover:bg-muted transition"
-                      >
-                        <CheckCircle2 className="h-3.5 w-3.5" /> View
-                      </button>
-                      <button
-                        onClick={() => toast.success("Certificate download started")}
-                        className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary-hover transition"
-                      >
-                        <Download className="h-3.5 w-3.5" /> Download
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
-      {/* Available */}
-      {availableCourses.length > 0 && (
-        <section>
-          <h2 className="text-xl font-semibold mb-4">Available Courses</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {availableCourses.map((c) => (
-              <div key={c.id} className="bg-card border border-border rounded-xl shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all p-5 flex flex-col">
-                <div className="flex items-center gap-2">
-                  {c.tier === "premium" ? (
-                    <Crown className="h-4 w-4 text-amber-600" />
-                  ) : (
-                    <Sparkles className="h-4 w-4 text-primary" />
-                  )}
-                  <div className="font-medium">{c.title}</div>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1 flex-1">{c.desc}</p>
-                <div className="text-[11px] text-muted-foreground mt-3">{c.lessons.length} lessons</div>
-                <button
-                  onClick={() => enroll(c.id)}
-                  className={`mt-3 inline-flex items-center justify-center h-9 rounded-md text-sm font-medium transition ${
-                    c.tier === "premium"
-                      ? "bg-amber-500 text-white hover:bg-amber-600"
-                      : "bg-primary text-primary-foreground hover:bg-primary-hover"
-                  }`}
+        <div>
+          <Tabs defaultValue="basic" className="w-full">
+            <TabsList className="bg-transparent p-0 h-auto flex flex-wrap gap-2 border-b border-border rounded-none w-full justify-start">
+              {[
+                { v: "basic", label: "Basic Info" },
+                { v: "about", label: "About" },
+                { v: "education", label: "Education" },
+                { v: "experience", label: "Experience" },
+                { v: "password", label: "Change Password" },
+              ].map((t) => (
+                <TabsTrigger
+                  key={t.v}
+                  value={t.v}
+                  className="rounded-none border-0 px-4 py-3 text-sm text-muted-foreground data-[state=active]:text-foreground data-[state=active]:shadow-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-amber-glow -mb-px"
                 >
-                  Enroll
-                </button>
+                  {t.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+
+            <TabsContent value="basic" className="mt-8 space-y-5 animate-in fade-in duration-200">
+              <Row>
+                <FieldWrap label="Full name">
+                  <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                </FieldWrap>
+                <FieldWrap label="Role">
+                  <Input value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} />
+                </FieldWrap>
+              </Row>
+              <Row>
+                <FieldWrap label="Email">
+                  <Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+                </FieldWrap>
+                <FieldWrap label="Department">
+                  <Input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} />
+                </FieldWrap>
+              </Row>
+              <SaveBar onSave={save} />
+            </TabsContent>
+
+            <TabsContent value="about" className="mt-8 animate-in fade-in duration-200">
+              <FieldWrap label="About you">
+                <Textarea rows={6} value={form.about} onChange={(e) => setForm({ ...form, about: e.target.value })} />
+              </FieldWrap>
+              <SaveBar onSave={save} />
+            </TabsContent>
+
+            <TabsContent value="education" className="mt-8 animate-in fade-in duration-200">
+              <FieldWrap label="Education">
+                <Textarea rows={5} value={form.education} onChange={(e) => setForm({ ...form, education: e.target.value })} />
+              </FieldWrap>
+              <SaveBar onSave={save} />
+            </TabsContent>
+
+            <TabsContent value="experience" className="mt-8 animate-in fade-in duration-200">
+              <FieldWrap label="Experience">
+                <Textarea rows={5} value={form.experience} onChange={(e) => setForm({ ...form, experience: e.target.value })} />
+              </FieldWrap>
+              <SaveBar onSave={save} />
+            </TabsContent>
+
+            <TabsContent value="password" className="mt-8 space-y-5 animate-in fade-in duration-200">
+              <FieldWrap label="Current password"><Input type="password" placeholder="••••••••" /></FieldWrap>
+              <FieldWrap label="New password"><Input type="password" placeholder="••••••••" /></FieldWrap>
+              <FieldWrap label="Confirm new password"><Input type="password" placeholder="••••••••" /></FieldWrap>
+              <div className="pt-2">
+                <Button onClick={() => toast.success("Password updated")} className="bg-plum-ink text-white hover:bg-primary-hover">
+                  <Check className="h-4 w-4 mr-1" /> Update password
+                </Button>
               </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {certCourse && (
-        <div
-          onClick={() => setCertCourse(null)}
-          className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="bg-card rounded-2xl overflow-hidden max-w-2xl w-full shadow-2xl"
-          >
-            <div className="flex items-center justify-between px-5 py-3 border-b border-border">
-              <div className="text-sm font-medium">Certificate of Completion</div>
-              <button
-                onClick={() => setCertCourse(null)}
-                className="h-8 w-8 rounded-md hover:bg-muted flex items-center justify-center"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <Certificate course={certCourse} date={state.completedAt?.[certCourse.id]} />
-            <div className="p-4 border-t border-border flex justify-end gap-2">
-              <button
-                onClick={() => toast.success("Certificate download started")}
-                className="inline-flex items-center gap-2 h-10 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary-hover transition"
-              >
-                <Download className="h-4 w-4" /> Download
-              </button>
-            </div>
-          </div>
+            </TabsContent>
+          </Tabs>
         </div>
-      )}
+      </div>
     </div>
   );
 }
 
-function Stat({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: number }) {
+function Row({ children }: { children: React.ReactNode }) {
+  return <div className="grid md:grid-cols-2 gap-5">{children}</div>;
+}
+
+function FieldWrap({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white/70 backdrop-blur rounded-xl border border-border p-4 min-w-[120px] shadow-sm">
-      <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide font-semibold text-muted-foreground">
-        <Icon className="h-3.5 w-3.5" /> {label}
-      </div>
-      <div className="mt-1 text-3xl font-semibold tabular-nums">{value}</div>
+    <div className="space-y-1.5">
+      <Label className="text-xs uppercase tracking-wide text-muted-foreground">{label}</Label>
+      {children}
     </div>
   );
 }
 
-function Certificate({ course, date }: { course: Course; date?: string }) {
-  const displayDate = (date ? new Date(date) : new Date()).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+function SaveBar({ onSave }: { onSave: () => void }) {
   return (
-    <div className="p-8 bg-gradient-to-br from-[oklch(0.98_0.01_255)] to-[oklch(0.94_0.03_255)]">
-      <div className="border-4 border-primary/30 rounded-xl p-8 text-center bg-white">
-        <div className="flex justify-center">
-          <div className="h-14 w-14 rounded-full bg-primary text-primary-foreground grid place-items-center shadow-sm">
-            <Award className="h-7 w-7" />
-          </div>
-        </div>
-        <div className="mt-4 text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-          AKUH Learning Portal
-        </div>
-        <div className="mt-1 text-2xl font-semibold tracking-tight">Certificate of Completion</div>
-        <p className="mt-6 text-sm text-muted-foreground">This certifies that</p>
-        <p className="mt-1 text-xl font-semibold">Aisha Siddiqui</p>
-        <p className="mt-4 text-sm text-muted-foreground">has successfully completed the course</p>
-        <p className="mt-1 text-lg font-semibold text-primary">{course.title}</p>
-        <p className="mt-6 text-xs text-muted-foreground">
-          Issued {displayDate} · Aga Khan University Hospital · AI Centre of Excellence
-        </p>
-      </div>
+    <div className="pt-2 flex justify-end">
+      <Button onClick={onSave} className="bg-plum-ink text-white hover:bg-primary-hover rounded-full px-6">
+        Save changes
+      </Button>
+    </div>
+  );
+}
+
+function Badge({ children, tone }: { children: React.ReactNode; tone?: "amber" }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full border ${
+        tone === "amber"
+          ? "bg-amber-glow text-plum-ink border-amber-glow"
+          : "bg-white/10 text-white border-white/20"
+      }`}
+    >
+      {children}
+    </span>
+  );
+}
+
+function MiniStat({ value, label }: { value: number; label: string }) {
+  return (
+    <div>
+      <div className="font-display text-2xl text-amber-glow leading-none">{value}</div>
+      <div className="text-[10px] uppercase tracking-wide text-white/60 mt-1">{label}</div>
     </div>
   );
 }
