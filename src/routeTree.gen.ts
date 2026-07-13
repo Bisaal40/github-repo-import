@@ -18,9 +18,15 @@ import { Route as PremiumRouteImport } from './routes/premium'
 import { Route as PlaygroundRouteImport } from './routes/playground'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LearningRouteImport } from './routes/learning'
+import { Route as EnrolledRouteImport } from './routes/enrolled'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as CoursesRouteImport } from './routes/courses'
+import { Route as CertificatesRouteImport } from './routes/certificates'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LearnIdRouteImport } from './routes/learn.$id'
+import { Route as CoursesIdRouteImport } from './routes/courses.$id'
 
 const SupportRoute = SupportRouteImport.update({
   id: '/support',
@@ -67,6 +73,26 @@ const LearningRoute = LearningRouteImport.update({
   path: '/learning',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EnrolledRoute = EnrolledRouteImport.update({
+  id: '/enrolled',
+  path: '/enrolled',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CoursesRoute = CoursesRouteImport.update({
+  id: '/courses',
+  path: '/courses',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CertificatesRoute = CertificatesRouteImport.update({
+  id: '/certificates',
+  path: '/certificates',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -82,11 +108,25 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LearnIdRoute = LearnIdRouteImport.update({
+  id: '/learn/$id',
+  path: '/learn/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CoursesIdRoute = CoursesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => CoursesRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
+  '/certificates': typeof CertificatesRoute
+  '/courses': typeof CoursesRouteWithChildren
+  '/dashboard': typeof DashboardRoute
+  '/enrolled': typeof EnrolledRoute
   '/learning': typeof LearningRoute
   '/login': typeof LoginRoute
   '/playground': typeof PlaygroundRoute
@@ -96,11 +136,17 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/support': typeof SupportRoute
+  '/courses/$id': typeof CoursesIdRoute
+  '/learn/$id': typeof LearnIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
+  '/certificates': typeof CertificatesRoute
+  '/courses': typeof CoursesRouteWithChildren
+  '/dashboard': typeof DashboardRoute
+  '/enrolled': typeof EnrolledRoute
   '/learning': typeof LearningRoute
   '/login': typeof LoginRoute
   '/playground': typeof PlaygroundRoute
@@ -110,12 +156,18 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/support': typeof SupportRoute
+  '/courses/$id': typeof CoursesIdRoute
+  '/learn/$id': typeof LearnIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
+  '/certificates': typeof CertificatesRoute
+  '/courses': typeof CoursesRouteWithChildren
+  '/dashboard': typeof DashboardRoute
+  '/enrolled': typeof EnrolledRoute
   '/learning': typeof LearningRoute
   '/login': typeof LoginRoute
   '/playground': typeof PlaygroundRoute
@@ -125,6 +177,8 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/support': typeof SupportRoute
+  '/courses/$id': typeof CoursesIdRoute
+  '/learn/$id': typeof LearnIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -132,6 +186,10 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/admin'
+    | '/certificates'
+    | '/courses'
+    | '/dashboard'
+    | '/enrolled'
     | '/learning'
     | '/login'
     | '/playground'
@@ -141,11 +199,17 @@ export interface FileRouteTypes {
     | '/settings'
     | '/signup'
     | '/support'
+    | '/courses/$id'
+    | '/learn/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/about'
     | '/admin'
+    | '/certificates'
+    | '/courses'
+    | '/dashboard'
+    | '/enrolled'
     | '/learning'
     | '/login'
     | '/playground'
@@ -155,11 +219,17 @@ export interface FileRouteTypes {
     | '/settings'
     | '/signup'
     | '/support'
+    | '/courses/$id'
+    | '/learn/$id'
   id:
     | '__root__'
     | '/'
     | '/about'
     | '/admin'
+    | '/certificates'
+    | '/courses'
+    | '/dashboard'
+    | '/enrolled'
     | '/learning'
     | '/login'
     | '/playground'
@@ -169,12 +239,18 @@ export interface FileRouteTypes {
     | '/settings'
     | '/signup'
     | '/support'
+    | '/courses/$id'
+    | '/learn/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   AdminRoute: typeof AdminRoute
+  CertificatesRoute: typeof CertificatesRoute
+  CoursesRoute: typeof CoursesRouteWithChildren
+  DashboardRoute: typeof DashboardRoute
+  EnrolledRoute: typeof EnrolledRoute
   LearningRoute: typeof LearningRoute
   LoginRoute: typeof LoginRoute
   PlaygroundRoute: typeof PlaygroundRoute
@@ -184,6 +260,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   SignupRoute: typeof SignupRoute
   SupportRoute: typeof SupportRoute
+  LearnIdRoute: typeof LearnIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -251,6 +328,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LearningRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/enrolled': {
+      id: '/enrolled'
+      path: '/enrolled'
+      fullPath: '/enrolled'
+      preLoaderRoute: typeof EnrolledRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/courses': {
+      id: '/courses'
+      path: '/courses'
+      fullPath: '/courses'
+      preLoaderRoute: typeof CoursesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/certificates': {
+      id: '/certificates'
+      path: '/certificates'
+      fullPath: '/certificates'
+      preLoaderRoute: typeof CertificatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin': {
       id: '/admin'
       path: '/admin'
@@ -272,13 +377,42 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/learn/$id': {
+      id: '/learn/$id'
+      path: '/learn/$id'
+      fullPath: '/learn/$id'
+      preLoaderRoute: typeof LearnIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/courses/$id': {
+      id: '/courses/$id'
+      path: '/$id'
+      fullPath: '/courses/$id'
+      preLoaderRoute: typeof CoursesIdRouteImport
+      parentRoute: typeof CoursesRoute
+    }
   }
 }
+
+interface CoursesRouteChildren {
+  CoursesIdRoute: typeof CoursesIdRoute
+}
+
+const CoursesRouteChildren: CoursesRouteChildren = {
+  CoursesIdRoute: CoursesIdRoute,
+}
+
+const CoursesRouteWithChildren =
+  CoursesRoute._addFileChildren(CoursesRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   AdminRoute: AdminRoute,
+  CertificatesRoute: CertificatesRoute,
+  CoursesRoute: CoursesRouteWithChildren,
+  DashboardRoute: DashboardRoute,
+  EnrolledRoute: EnrolledRoute,
   LearningRoute: LearningRoute,
   LoginRoute: LoginRoute,
   PlaygroundRoute: PlaygroundRoute,
@@ -288,17 +422,8 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   SignupRoute: SignupRoute,
   SupportRoute: SupportRoute,
+  LearnIdRoute: LearnIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
