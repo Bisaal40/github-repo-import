@@ -29,7 +29,18 @@ function LearnPage() {
   const state = usePortal();
   const navigate = useNavigate();
 
-  if (!isEnrolled(state, id)) {
+  const enrolled = isEnrolled(state, id);
+  const lessons = useMemo(() => allLessons(course), [course]);
+  const completed = new Set(state.enrollments[id]?.completedLessonIds ?? []);
+  const firstIncomplete = lessons.find((l) => !completed.has(l.id));
+  const [activeLessonId, setActiveLessonId] = useState<string>(firstIncomplete?.id ?? lessons[0].id);
+  const [openModules, setOpenModules] = useState<Record<string, boolean>>(
+    Object.fromEntries(course.modules.map((m) => [m.id, true]))
+  );
+  const [tab, setTab] = useState<"desc" | "discussion" | "review">("desc");
+  const [fade, setFade] = useState(false);
+
+  if (!enrolled) {
     return (
       <div className="max-w-[720px] mx-auto px-6 py-24 text-center">
         <div className="font-display text-3xl">Enroll first</div>
@@ -45,15 +56,6 @@ function LearnPage() {
     );
   }
 
-  const lessons = useMemo(() => allLessons(course), [course]);
-  const completed = new Set(state.enrollments[id]?.completedLessonIds ?? []);
-  const firstIncomplete = lessons.find((l) => !completed.has(l.id));
-  const [activeLessonId, setActiveLessonId] = useState<string>(firstIncomplete?.id ?? lessons[0].id);
-  const [openModules, setOpenModules] = useState<Record<string, boolean>>(
-    Object.fromEntries(course.modules.map((m) => [m.id, true]))
-  );
-  const [tab, setTab] = useState<"desc" | "discussion" | "review">("desc");
-  const [fade, setFade] = useState(false);
 
   const activeIdx = lessons.findIndex((l) => l.id === activeLessonId);
   const activeLesson = lessons[activeIdx];
