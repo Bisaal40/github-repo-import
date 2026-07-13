@@ -7,10 +7,11 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { logout, useCurrentUser } from "@/lib/auth";
 
-type NavRoute = "/" | "/learning" | "/prompts" | "/premium" | "/about" | "/admin";
+type NavRoute = "/" | "/dashboard" | "/learning" | "/prompts" | "/premium" | "/about" | "/admin";
 const NAV: { label: string; to: NavRoute }[] = [
   { label: "Home", to: "/" },
-  { label: "Learning", to: "/learning" },
+  { label: "My Learning", to: "/dashboard" },
+  { label: "Catalog", to: "/learning" },
   { label: "Prompt Library", to: "/prompts" },
   { label: "Premium Access", to: "/premium" },
   { label: "About", to: "/about" },
